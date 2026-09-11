@@ -41,62 +41,99 @@ Layer rules:
 
 ## 2. Directory Structure
 
+Hexagonal Architecture (Ports & Adapters):
+
 ```
-ewallet/
-├── cmd/
-│   └── api/
-│       └── main.go                  # entry point, wiring
-│
-├── internal/
-│   ├── handler/
-│   │   ├── auth_handler.go
-│   │   ├── wallet_handler.go
-│   │   ├── transfer_handler.go
-│   │   └── admin_handler.go
-│   │
-│   ├── middleware/
-│   │   ├── auth.go                  # JWT / token validation
-│   │   ├── rbac.go                  # RequirePermission()
-│   │   └── request_id.go            # X-Request-ID injection
-│   │
-│   ├── service/
-│   │   ├── auth_service.go
-│   │   ├── wallet_service.go
-│   │   ├── transfer_service.go
-│   │   ├── role_service.go
-│   │   └── audit_service.go
-│   │
-│   ├── repository/
-│   │   ├── user_repository.go
-│   │   ├── wallet_repository.go
-│   │   ├── transaction_repository.go
-│   │   ├── role_repository.go
-│   │   └── audit_repository.go
-│   │
-│   ├── model/
+cmd/
+└── api/
+    └── main.go                          # entry point, dependency wiring
+
+internal/
+├── core/
+│   ├── domain/                          ← pure entities (no framework deps)
 │   │   ├── user.go
 │   │   ├── wallet.go
 │   │   ├── transaction.go
 │   │   ├── ledger_entry.go
 │   │   ├── role.go
-│   │   └── audit_log.go
+│   │   ├── audit_log.go
+│   │   └── auth.go                      # AuthenticatedUser + context key
 │   │
-│   └── database/
-│       └── mysql.go                 # *sql.DB setup, ping, DSN
+│   ├── port/
+│   │   ├── in/                          ← driving ports (use case interfaces)
+│   │   │   ├── auth_usecase.go
+│   │   │   ├── wallet_usecase.go
+│   │   │   ├── transfer_usecase.go
+│   │   │   ├── role_usecase.go
+│   │   │   └── audit_usecase.go
+│   │   │
+│   │   └── out/                         ← driven ports (repo, audit, token interfaces)
+│   │       ├── user_repository.go
+│   │       ├── wallet_repository.go
+│   │       ├── transaction_repository.go
+│   │       ├── ledger_repository.go
+│   │       ├── role_repository.go
+│   │       └── audit_repository.go
+│   │
+│   └── service/                         ← use case implementations
+│       ├── auth_service.go
+│       ├── wallet_service.go
+│       ├── transfer_service.go
+│       ├── role_service.go
+│       └── audit_service.go
 │
-├── migrations/
-│   └── 001_init.sql
+├── adapter/
+│   ├── in/
+│   │   └── http/                        ← HTTP handlers + router
+│   │       ├── auth_handler.go
+│   │       ├── wallet_handler.go
+│   │       ├── transfer_handler.go
+│   │       ├── admin_handler.go
+│   │       └── router.go
+│   │
+│   └── out/
+│       └── mysql/                       ← MySQL repository implementations
+│           ├── user_repository.go
+│           ├── wallet_repository.go
+│           ├── transaction_repository.go
+│           ├── ledger_repository.go
+│           ├── role_repository.go
+│           └── audit_repository.go
 │
-├── tests/
-│   ├── transfer_test.go
-│   ├── idempotency_test.go
-│   ├── concurrency_test.go
-│   ├── rbac_test.go
-│   └── audit_test.go
-│
-├── go.mod
-└── README.md
+└── infrastructure/
+    ├── config/
+    │   └── config.go                    # env-based configuration
+    ├── database/
+    │   └── mysql.go                     # *sql.DB setup, ping, DSN
+    ├── logger/
+    │   └── logger.go                    # structured logging setup
+    └── middleware/
+        ├── auth.go                      # JWT / token validation
+        ├── rbac.go                      # RequirePermission()
+        └── request_id.go               # X-Request-ID injection
+
+migrations/
+└── 001_init.sql
+
+tests/
+├── transfer_test.go
+├── idempotency_test.go
+├── concurrency_test.go
+├── rbac_test.go
+└── audit_test.go
+
+go.mod
+README.md
 ```
+
+Layer rules:
+- `core/domain` contains pure entities — no imports from adapter or infrastructure
+- `core/port/in` defines what the application *does* (use case interfaces, driven by HTTP adapter)
+- `core/port/out` defines what the application *needs* (repo/token interfaces, implemented by MySQL adapter)
+- `core/service` implements `port/in` interfaces, depends only on `port/out` interfaces
+- `adapter/in/http` implements HTTP handling, calls `port/in` interfaces
+- `adapter/out/mysql` implements `port/out` interfaces, performs raw SQL
+- `infrastructure` provides cross-cutting concerns (DB connection, config, logging, middleware)
 
 ---
 
@@ -299,36 +336,98 @@ type AuditLog struct {
 
 ---
 
-## 5. Repository Interfaces
+## 5. Repository Interfaces (Driven Ports — `core/port/out`)
+
+These interfaces are defined in `internal/core/port/out/` and implemented in `internal/adapter/out/mysql/`.
+Services in `internal/core/service/` depend on these interfaces, never on the concrete MySQL implementations.
 
 ```go
+// internal/core/port/out/user_repository.go
+type UserRepository interface {
+    Create(ctx context.Context, tx *sql.Tx, u *domain.User) (int64, error)
+    GetByID(ctx context.Context, userID int64) (*domain.User, error)
+    GetByEmail(ctx context.Context, email string) (*domain.User, error)
+    UpdateStatus(ctx context.Context, tx *sql.Tx, userID int64, status string) error
+    List(ctx context.Context, limit, offset int) ([]*domain.User, error)
+}
+
+// internal/core/port/out/wallet_repository.go
 type WalletRepository interface {
-    GetByIDForUpdate(ctx context.Context, tx *sql.Tx, walletID int64) (*Wallet, error)
+    Create(ctx context.Context, tx *sql.Tx, w *domain.Wallet) (int64, error)
+    GetByID(ctx context.Context, walletID int64) (*domain.Wallet, error)
+    GetByIDForUpdate(ctx context.Context, tx *sql.Tx, walletID int64) (*domain.Wallet, error)
+    GetByUserID(ctx context.Context, userID int64) (*domain.Wallet, error)
     Debit(ctx context.Context, tx *sql.Tx, walletID int64, amount int64) error
     Credit(ctx context.Context, tx *sql.Tx, walletID int64, amount int64) error
-    GetByID(ctx context.Context, walletID int64) (*Wallet, error)
 }
 
+// internal/core/port/out/transaction_repository.go
 type TransactionRepository interface {
-    Create(ctx context.Context, tx *sql.Tx, t *Transaction) (int64, error)
-    GetByIdempotencyKey(ctx context.Context, key string) (*Transaction, error)
+    Create(ctx context.Context, tx *sql.Tx, t *domain.Transaction) (int64, error)
+    GetByIdempotencyKey(ctx context.Context, key string) (*domain.Transaction, error)
     UpdateStatus(ctx context.Context, tx *sql.Tx, id int64, status string) error
+    List(ctx context.Context, limit, offset int) ([]*domain.Transaction, error)
 }
 
+// internal/core/port/out/ledger_repository.go
 type LedgerRepository interface {
-    Create(ctx context.Context, tx *sql.Tx, entry *LedgerEntry) error
+    Create(ctx context.Context, tx *sql.Tx, entry *domain.LedgerEntry) error
     SumByWalletID(ctx context.Context, walletID int64) (debit int64, credit int64, err error)
 }
 
+// internal/core/port/out/role_repository.go
 type RoleRepository interface {
     HasPermission(ctx context.Context, userID int64, permission string) (bool, error)
-    AssignRole(ctx context.Context, userID int64, roleName string) error
-    RemoveRole(ctx context.Context, userID int64, roleName string) error
+    AssignRole(ctx context.Context, tx *sql.Tx, userID int64, roleName string) error
+    RemoveRole(ctx context.Context, tx *sql.Tx, userID int64, roleName string) error
+    GetUserRoles(ctx context.Context, userID int64) ([]*domain.Role, error)
 }
 
+// internal/core/port/out/audit_repository.go
 type AuditRepository interface {
-    Create(ctx context.Context, tx *sql.Tx, log AuditLog) error
-    CreateIndependent(ctx context.Context, log AuditLog) error  // for security events outside TX
+    Create(ctx context.Context, tx *sql.Tx, log domain.AuditLog) error
+    CreateIndependent(ctx context.Context, log domain.AuditLog) error  // for security events outside TX
+    List(ctx context.Context, limit, offset int) ([]*domain.AuditLog, error)
+}
+```
+
+Use Case Interfaces (Driving Ports — `core/port/in`):
+
+These interfaces are defined in `internal/core/port/in/` and implemented by `internal/core/service/`.
+HTTP adapters in `internal/adapter/in/http/` depend on these interfaces, never on concrete services.
+
+```go
+// internal/core/port/in/auth_usecase.go
+type AuthUseCase interface {
+    Register(ctx context.Context, name, email, plainPassword string) (*domain.User, error)
+    Login(ctx context.Context, email, plainPassword string) (token string, err error)
+    Logout(ctx context.Context, actorID int64) error
+}
+
+// internal/core/port/in/wallet_usecase.go
+type WalletUseCase interface {
+    Create(ctx context.Context, userID int64) (*domain.Wallet, error)
+    GetByID(ctx context.Context, walletID int64) (*domain.Wallet, error)
+    ChangeStatus(ctx context.Context, actorID, walletID int64, status string) error
+    Reconcile(ctx context.Context, walletID int64) (*domain.ReconciliationResult, error)
+}
+
+// internal/core/port/in/transfer_usecase.go
+type TransferUseCase interface {
+    Transfer(ctx context.Context, fromWalletID, toWalletID, amount int64, idempotencyKey string) (*domain.Transaction, error)
+}
+
+// internal/core/port/in/role_usecase.go
+type RoleUseCase interface {
+    AssignRole(ctx context.Context, actorID, targetUserID int64, roleName string) error
+    RemoveRole(ctx context.Context, actorID, targetUserID int64, roleName string) error
+    GetUserRoles(ctx context.Context, userID int64) ([]*domain.Role, error)
+}
+
+// internal/core/port/in/audit_usecase.go
+type AuditUseCase interface {
+    RecordInTx(ctx context.Context, tx *sql.Tx, log domain.AuditLog) error
+    RecordIndependent(ctx context.Context, log domain.AuditLog) error
 }
 ```
 
