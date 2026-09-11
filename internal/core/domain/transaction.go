@@ -20,6 +20,7 @@ const (
 // idempotency_key must be unique — prevents duplicate execution.
 type Transaction struct {
 	ID             int64
+	UID            string // public ULID — returned to clients as transaction id
 	IdempotencyKey string
 	Type           TransactionType
 	Status         TransactionStatus

@@ -15,6 +15,7 @@ const (
 // For IDR: 100000 = Rp100.000
 type Wallet struct {
 	ID        int64
+	UID       string // public ULID — the external identifier for this wallet
 	UserID    int64
 	Balance   int64  // integer amount, never float
 	Currency  string // default: IDR

@@ -4,13 +4,21 @@ package mock
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
 	"sync"
 	"sync/atomic"
+	"time"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/snipkode/wertku/internal/apperror"
 	"github.com/snipkode/wertku/internal/core/domain"
 )
+
+// newUID returns a fresh 26-char ULID for tests.
+func newUID() string {
+	return ulid.MustNew(ulid.Timestamp(time.Now()), rand.Reader).String()
+}
 
 // ─── MockWalletRepository ────────────────────────────────────────────────────
 
@@ -35,6 +43,9 @@ func (m *MockWalletRepository) Create(_ context.Context, _ *sql.Tx, w *domain.Wa
 	defer m.mu.Unlock()
 	m.nextID++
 	w.ID = m.nextID
+	if w.UID == "" {
+		w.UID = newUID()
+	}
 	clone := *w
 	m.wallets[w.ID] = &clone
 	return w.ID, nil
@@ -147,6 +158,9 @@ func (m *MockTransactionRepository) Create(_ context.Context, _ *sql.Tx, t *doma
 	}
 	m.nextID++
 	t.ID = m.nextID
+	if t.UID == "" {
+		t.UID = newUID()
+	}
 	clone := *t
 	m.byKey[t.IdempotencyKey] = &clone
 	m.byID[t.ID] = &clone

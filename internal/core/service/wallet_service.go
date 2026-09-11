@@ -65,7 +65,7 @@ func (s *WalletService) Create(ctx context.Context, req in.CreateWalletRequest) 
 
 	// Audit log inside TX — atomic with wallet creation
 	resType := "wallet"
-	resID := fmt.Sprintf("%d", walletID)
+	resID := wallet.UID
 	if err := s.auditRepo.Create(ctx, tx, &domain.AuditLog{
 		ActorUserID:  &req.UserID,
 		Action:       domain.AuditWalletCreated,
@@ -158,6 +158,7 @@ func (s *WalletService) Reconcile(ctx context.Context, walletID int64) (*in.Reco
 func toWalletResponse(w *domain.Wallet) *in.WalletResponse {
 	return &in.WalletResponse{
 		ID:        w.ID,
+		UID:       w.UID,
 		UserID:    w.UserID,
 		Balance:   w.Balance,
 		Currency:  w.Currency,

@@ -34,7 +34,7 @@ func NewTransferHandler(transferUC in.TransferUseCase) *TransferHandler {
 //
 // Response:
 //
-//	{ "transaction_id": 123, "status": "SUCCESS" }
+//	{ "transaction_id": "01HXYV3...", "status": "SUCCESS" }
 func (h *TransferHandler) Transfer(w http.ResponseWriter, r *http.Request) {
 	// Extract actor from context (set by Auth middleware)
 	actor, err := domain.UserFromContext(r.Context())

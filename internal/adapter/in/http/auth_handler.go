@@ -44,6 +44,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	response.JSON(w, http.StatusCreated, map[string]any{
 		"user_id": resp.UserID,
+		"uid":     resp.UID,
 		"email":   resp.Email,
 	})
 }
@@ -75,6 +76,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, map[string]any{
 		"token":   resp.Token,
 		"user_id": resp.UserID,
+		"uid":     resp.UID,
 	})
 }
 

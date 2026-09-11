@@ -83,7 +83,7 @@ func (s *AuthService) Register(ctx context.Context, req in.RegisterRequest) (*in
 		return nil, err
 	}
 
-	return &in.RegisterResponse{UserID: userID, Email: req.Email}, nil
+	return &in.RegisterResponse{UserID: userID, UID: user.UID, Email: req.Email}, nil
 }
 
 // Login verifies credentials and returns a JWT token.
@@ -120,7 +120,7 @@ func (s *AuthService) Login(ctx context.Context, req in.LoginRequest) (*in.Login
 		UserAgent:   strPtr(req.UserAgent),
 	})
 
-	return &in.LoginResponse{Token: token, UserID: user.ID}, nil
+	return &in.LoginResponse{Token: token, UserID: user.ID, UID: user.UID}, nil
 }
 
 // Logout records a LOGOUT audit event.

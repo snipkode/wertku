@@ -30,11 +30,12 @@ func (r *TransactionRepository) Create(ctx context.Context, tx *sql.Tx, t *domai
 
 	const q = `
 		INSERT INTO transactions
-			(idempotency_key, type, status, from_wallet_id, to_wallet_id, amount)
-		VALUES (?, ?, ?, ?, ?, ?)`
+			(uid, idempotency_key, type, status, from_wallet_id, to_wallet_id, amount)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`
 
+	t.UID = newUID()
 	res, err := ex.ExecContext(ctx, q,
-		t.IdempotencyKey, t.Type, t.Status,
+		t.UID, t.IdempotencyKey, t.Type, t.Status,
 		t.FromWalletID, t.ToWalletID, t.Amount,
 	)
 	if err != nil {
@@ -49,7 +50,7 @@ func (r *TransactionRepository) Create(ctx context.Context, tx *sql.Tx, t *domai
 // GetByID returns the transaction with the given ID.
 func (r *TransactionRepository) GetByID(ctx context.Context, id int64) (*domain.Transaction, error) {
 	const q = `
-		SELECT id, idempotency_key, type, status,
+		SELECT id, uid, idempotency_key, type, status,
 		       from_wallet_id, to_wallet_id, amount, created_at, updated_at
 		FROM transactions WHERE id = ?`
 
@@ -62,7 +63,7 @@ func (r *TransactionRepository) GetByID(ctx context.Context, id int64) (*domain.
 // if a non-nil transaction is returned.
 func (r *TransactionRepository) GetByIdempotencyKey(ctx context.Context, key string) (*domain.Transaction, error) {
 	const q = `
-		SELECT id, idempotency_key, type, status,
+		SELECT id, uid, idempotency_key, type, status,
 		       from_wallet_id, to_wallet_id, amount, created_at, updated_at
 		FROM transactions WHERE idempotency_key = ?`
 
@@ -91,7 +92,7 @@ func (r *TransactionRepository) UpdateStatus(ctx context.Context, tx *sql.Tx, id
 // List returns a paginated list of transactions ordered by created_at DESC.
 func (r *TransactionRepository) List(ctx context.Context, limit, offset int) ([]*domain.Transaction, error) {
 	const q = `
-		SELECT id, idempotency_key, type, status,
+		SELECT id, uid, idempotency_key, type, status,
 		       from_wallet_id, to_wallet_id, amount, created_at, updated_at
 		FROM transactions ORDER BY created_at DESC LIMIT ? OFFSET ?`
 
@@ -105,7 +106,7 @@ func (r *TransactionRepository) List(ctx context.Context, limit, offset int) ([]
 	for rows.Next() {
 		t := &domain.Transaction{}
 		if err := rows.Scan(
-			&t.ID, &t.IdempotencyKey, &t.Type, &t.Status,
+			&t.ID, &t.UID, &t.IdempotencyKey, &t.Type, &t.Status,
 			&t.FromWalletID, &t.ToWalletID, &t.Amount,
 			&t.CreatedAt, &t.UpdatedAt,
 		); err != nil {
@@ -119,7 +120,7 @@ func (r *TransactionRepository) List(ctx context.Context, limit, offset int) ([]
 func scanTransaction(row *sql.Row) (*domain.Transaction, error) {
 	t := &domain.Transaction{}
 	err := row.Scan(
-		&t.ID, &t.IdempotencyKey, &t.Type, &t.Status,
+		&t.ID, &t.UID, &t.IdempotencyKey, &t.Type, &t.Status,
 		&t.FromWalletID, &t.ToWalletID, &t.Amount,
 		&t.CreatedAt, &t.UpdatedAt,
 	)

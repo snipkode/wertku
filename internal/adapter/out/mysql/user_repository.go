@@ -33,10 +33,11 @@ func (r *UserRepository) Create(ctx context.Context, tx *sql.Tx, user *domain.Us
 	}
 
 	const q = `
-		INSERT INTO users (name, email, password_hash, status)
-		VALUES (?, ?, ?, ?)`
+		INSERT INTO users (uid, name, email, password_hash, status)
+		VALUES (?, ?, ?, ?, ?)`
 
-	res, err := ex.ExecContext(ctx, q, user.Name, user.Email, user.PasswordHash, user.Status)
+	user.UID = newUID()
+	res, err := ex.ExecContext(ctx, q, user.UID, user.Name, user.Email, user.PasswordHash, user.Status)
 	if err != nil {
 		if isDuplicateKeyError(err) {
 			return 0, apperror.ErrEmailAlreadyExists
@@ -54,7 +55,7 @@ func (r *UserRepository) Create(ctx context.Context, tx *sql.Tx, user *domain.Us
 // GetByID returns the user with the given ID.
 func (r *UserRepository) GetByID(ctx context.Context, userID int64) (*domain.User, error) {
 	const q = `
-		SELECT id, name, email, password_hash, status, created_at, updated_at
+		SELECT id, uid, name, email, password_hash, status, created_at, updated_at
 		FROM users WHERE id = ?`
 
 	row := r.db.QueryRowContext(ctx, q, userID)
@@ -64,7 +65,7 @@ func (r *UserRepository) GetByID(ctx context.Context, userID int64) (*domain.Use
 // GetByEmail returns the user with the given email address.
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
 	const q = `
-		SELECT id, name, email, password_hash, status, created_at, updated_at
+		SELECT id, uid, name, email, password_hash, status, created_at, updated_at
 		FROM users WHERE email = ?`
 
 	row := r.db.QueryRowContext(ctx, q, email)
@@ -86,7 +87,7 @@ func (r *UserRepository) UpdateStatus(ctx context.Context, tx *sql.Tx, userID in
 // List returns a paginated list of users.
 func (r *UserRepository) List(ctx context.Context, limit, offset int) ([]*domain.User, error) {
 	const q = `
-		SELECT id, name, email, password_hash, status, created_at, updated_at
+		SELECT id, uid, name, email, password_hash, status, created_at, updated_at
 		FROM users ORDER BY id ASC LIMIT ? OFFSET ?`
 
 	rows, err := r.db.QueryContext(ctx, q, limit, offset)
@@ -99,7 +100,7 @@ func (r *UserRepository) List(ctx context.Context, limit, offset int) ([]*domain
 	for rows.Next() {
 		u := &domain.User{}
 		if err := rows.Scan(
-			&u.ID, &u.Name, &u.Email, &u.PasswordHash,
+			&u.ID, &u.UID, &u.Name, &u.Email, &u.PasswordHash,
 			&u.Status, &u.CreatedAt, &u.UpdatedAt,
 		); err != nil {
 			return nil, err
@@ -113,7 +114,7 @@ func (r *UserRepository) List(ctx context.Context, limit, offset int) ([]*domain
 func scanUser(row *sql.Row) (*domain.User, error) {
 	u := &domain.User{}
 	err := row.Scan(
-		&u.ID, &u.Name, &u.Email, &u.PasswordHash,
+		&u.ID, &u.UID, &u.Name, &u.Email, &u.PasswordHash,
 		&u.Status, &u.CreatedAt, &u.UpdatedAt,
 	)
 	if err != nil {

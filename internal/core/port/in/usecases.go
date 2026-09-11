@@ -19,6 +19,7 @@ type RegisterRequest struct {
 
 type RegisterResponse struct {
 	UserID int64
+	UID    string // public ULID
 	Email  string
 }
 
@@ -33,6 +34,7 @@ type LoginRequest struct {
 type LoginResponse struct {
 	Token  string
 	UserID int64
+	UID    string // public ULID
 }
 
 // AuthUseCase handles user registration, login, and logout.
@@ -50,6 +52,7 @@ type CreateWalletRequest struct {
 
 type WalletResponse struct {
 	ID        int64
+	UID       string // public ULID
 	UserID    int64
 	Balance   int64
 	Currency  string
@@ -90,7 +93,7 @@ type TransferRequest struct {
 }
 
 type TransferResponse struct {
-	TransactionID int64
+	TransactionID string // public ULID
 	Status        string
 }
 

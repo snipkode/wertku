@@ -13,6 +13,7 @@ const (
 // User is the core user entity.
 type User struct {
 	ID           int64
+	UID          string // public ULID — never expose internal ID to clients
 	Name         string
 	Email        string
 	PasswordHash string // bcrypt/argon2id hash — never plaintext

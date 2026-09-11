@@ -85,7 +85,7 @@ func (s *TransferService) doTransfer(ctx context.Context, req in.TransferRequest
 	if existing != nil {
 		// Same key already executed — return existing result without re-executing
 		return &in.TransferResponse{
-			TransactionID: existing.ID,
+			TransactionID: existing.UID,
 			Status:        string(existing.Status),
 		}, nil
 	}
@@ -135,7 +135,7 @@ func (s *TransferService) doTransfer(ctx context.Context, req in.TransferRequest
 			existing, fetchErr := s.txRepo.GetByIdempotencyKey(ctx, req.IdempotencyKey)
 			if fetchErr == nil && existing != nil {
 				return &in.TransferResponse{
-					TransactionID: existing.ID,
+					TransactionID: existing.UID,
 					Status:        string(existing.Status),
 				}, nil
 			}
@@ -183,7 +183,7 @@ func (s *TransferService) doTransfer(ctx context.Context, req in.TransferRequest
 	// ── Step 12: Audit log INSIDE TX (atomic with financial changes) ──────────
 	reqID := req.RequestID
 	resType := "transaction"
-	resID := fmt.Sprintf("%d", txID)
+	resID := txRecord.UID
 	if err := s.auditRepo.Create(ctx, tx, &domain.AuditLog{
 		ActorUserID:  &req.ActorUserID,
 		Action:       domain.AuditTransferSuccess,
@@ -208,7 +208,7 @@ func (s *TransferService) doTransfer(ctx context.Context, req in.TransferRequest
 	}
 
 	return &in.TransferResponse{
-		TransactionID: txID,
+		TransactionID: txRecord.UID,
 		Status:        string(domain.TransactionStatusSuccess),
 	}, nil
 }
