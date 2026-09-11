@@ -23,7 +23,7 @@ func main() {
 
 	// ── 2. Set up structured logger ───────────────────────────────────────────
 	log := logger.New(cfg)
-	log.Info("starting wertku", "env", cfg.Env, "addr", cfg.ServerAddr)
+	log.Info("starting wertku", "env", cfg.Env, "addr", cfg.Server.Addr)
 
 	// ── 3. Connect to MySQL ───────────────────────────────────────────────────
 	db := database.Connect(cfg)
@@ -61,7 +61,7 @@ func main() {
 
 	// ── 8. Configure HTTP server ──────────────────────────────────────────────
 	srv := &http.Server{
-		Addr:         cfg.ServerAddr,
+		Addr:         cfg.Server.Addr,
 		Handler:      router,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
@@ -74,7 +74,7 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		log.Info("server listening", "addr", cfg.ServerAddr)
+		log.Info("server listening", "addr", cfg.Server.Addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Error("server error", "error", err)
 			os.Exit(1)

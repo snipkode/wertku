@@ -14,7 +14,7 @@ import (
 // Sets sensible connection pool defaults.
 // Panics if the connection cannot be established.
 func Connect(cfg *config.Config) *sql.DB {
-	db, err := sql.Open("mysql", cfg.DBDSN)
+	db, err := sql.Open("mysql", cfg.Database.DSN)
 	if err != nil {
 		panic(fmt.Sprintf("database: failed to open connection: %v", err))
 	}

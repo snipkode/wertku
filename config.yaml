@@ -1,0 +1,16 @@
+# Wertku — Development Config
+# DO NOT commit this file if it contains real secrets.
+
+server:
+  addr: ":8080"
+
+database:
+  dsn: "root:@tcp(localhost:3306)/wertku?parseTime=true&loc=UTC"
+
+auth:
+  jwt_secret: "wertku-dev-secret-change-in-production"
+
+log:
+  level: "info"
+
+env: "development"

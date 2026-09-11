@@ -50,10 +50,10 @@ func (t *noopTx) Rollback() error { return nil }
 
 type noopStmt struct{}
 
-func (s *noopStmt) Close() error                                    { return nil }
-func (s *noopStmt) NumInput() int                                   { return -1 }
-func (s *noopStmt) Exec(_ []driver.Value) (driver.Result, error)   { return noopResult{}, nil }
-func (s *noopStmt) Query(_ []driver.Value) (driver.Rows, error)    { return &noopRows{}, nil }
+func (s *noopStmt) Close() error                                 { return nil }
+func (s *noopStmt) NumInput() int                                { return -1 }
+func (s *noopStmt) Exec(_ []driver.Value) (driver.Result, error) { return noopResult{}, nil }
+func (s *noopStmt) Query(_ []driver.Value) (driver.Rows, error)  { return &noopRows{}, nil }
 
 type noopResult struct{}
 
@@ -62,8 +62,8 @@ func (r noopResult) RowsAffected() (int64, error) { return 0, nil }
 
 type noopRows struct{ done bool }
 
-func (r *noopRows) Columns() []string              { return nil }
-func (r *noopRows) Close() error                   { return nil }
+func (r *noopRows) Columns() []string { return nil }
+func (r *noopRows) Close() error      { return nil }
 func (r *noopRows) Next(_ []driver.Value) error {
 	if r.done {
 		return io.EOF

@@ -1,0 +1,17 @@
+# Wertku Configuration
+# Copy this file to config.yaml and fill in your values.
+# NEVER commit config.yaml with real secrets to version control.
+
+server:
+  addr: ":8080"
+
+database:
+  dsn: "root:@tcp(localhost:3306)/wertku?parseTime=true&loc=UTC"
+
+auth:
+  jwt_secret: "wertku-dev-secret-change-in-production"
+
+log:
+  level: "info"   # debug | info | warn | error
+
+env: "development"  # development | staging | production

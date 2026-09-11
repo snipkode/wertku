@@ -12,7 +12,7 @@ import (
 // New creates a structured slog.Logger based on config.
 // Output is JSON for non-development environments.
 func New(cfg *config.Config) *slog.Logger {
-	level := parseLevel(cfg.LogLevel)
+	level := parseLevel(cfg.Log.Level)
 
 	var handler slog.Handler
 	opts := &slog.HandlerOptions{Level: level}

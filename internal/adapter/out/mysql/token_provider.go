@@ -20,7 +20,7 @@ type JWTTokenProvider struct {
 // NewJWTTokenProvider creates a token provider from config.
 // The secret is read from config.JWTSecret (env: JWT_SECRET).
 func NewJWTTokenProvider(cfg *config.Config) *JWTTokenProvider {
-	return &JWTTokenProvider{secret: []byte(cfg.JWTSecret)}
+	return &JWTTokenProvider{secret: []byte(cfg.Auth.JWTSecret)}
 }
 
 type claims struct {
