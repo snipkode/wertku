@@ -1,0 +1,27 @@
+# Binaries / build artifacts
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/tmp
+
+# Go workspace / coverage
+*.prof
+coverage.*
+vendor/
+
+# Config with secrets
+config.yaml
+*.env
+.env
+.env.*
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
